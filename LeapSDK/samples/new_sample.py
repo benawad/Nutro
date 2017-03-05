@@ -29,7 +29,7 @@ class SampleListener(Leap.Listener):
     handplace = [0,0]
     wordplace = ["",""]
     pongplacement = [0,0]
-    url=""
+    url="http://localhost:3030/games"
     def printit(self):
         payload = {'paddle1': SampleListener.pongplacement[0], 'paddle2': SampleListener.pongplacement[1]}
         requests.post(SampleListener.url, data=payload)
