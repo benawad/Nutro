@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<style>
+
+		</style>
+		<title>Pong!</title>
+		<script>
+		var scores = [0, 0];
+		var ball = {
+			radius: 5,
+			color: 'white',
+			xspeed: 1000 / 50, /* 50 pixels per second */
+			yspeed: 1000 / 50, /* 50 pixels per second */
+			x: 300 / 2,
+			y: 0,
+			goingRight: false,
+			goingDown: true,
+			bounceX: 300 / 2,
+			bounceXTime: new Date().getTime(),
+			bounceY: 0,
+			bounceYTime: new Date().getTime()
+		}
+		var up = false;
+		var down = false;
+		var startTime = new Date().getTime();
+		//  speed is milliseconds per pixel to move paddles.
+		var speed = 1000 / 70 /* 50 pixels per second */
+		var hue = 0;
+		var paddle1 = {
+			width: 15,
+			height: 40,
+			color: 'white',
+			leftNotRight: true,
+			top: 0,
+			moving: 1,
+			startedMoving: 0,
+			startPos: 0
+		}
+		var paddle2 = {
+			width: 15,
+			height: 40,
+			color: 'white',
+			leftNotRight: false,
+			top: 300 - 40,
+			moving: -1,
+			startedMoving: 0,
+			startPos: 300 - 40
+		}
+		var paddles = [paddle1, paddle2]
+		
+		
+		function loop() {
+			update();
+			render();
+			requestAnimationFrame(loop);
+		}
+		function update() {
+			for (var i = 0; i < paddles.length; i++) {
+				var paddle = paddles[i];
+				if(paddle.moving == 1) {
+					if(paddle.top == canvas.height - paddle.height)
+						paddle.moving = 0;
+					else {
+						var newPos = paddle.startPos + (new Date().getTime() - paddle.startedMoving) / speed;
+
+						if(newPos >= canvas.height - paddle.height) {
+							paddle.top = canvas.height - paddle.height;
+						}
+						else {
+							paddle.top = newPos;
+						}
+					}
+				}
+				else if(paddle.moving == -1) {
+					if(paddle.top == 0) {
+						paddle.moving = 0;
+					}
+					else {
+						var newPos = paddle.startPos - (new Date().getTime() - paddle.startedMoving) / speed;
+						if(newPos <= 0) {
+							paddle.top = 0;
+						}
+						else {
+							paddle.top = newPos;
+						}
+					}
+				}
+			}
+			
+			var time = new Date().getTime();
+			var newX = ball.bounceX + (ball.goingRight ? 1 : -1) * (time - ball.bounceXTime) / ball.xspeed;
+			var newY = ball.bounceY + (ball.goingDown ? 1 : -1) * (time - ball.bounceYTime) / ball.yspeed;
+			
+			if(ball.goingRight) {
+				if(newX + ball.radius > canvas.width - paddles[1].width) {
+					if(newY - paddles[1].top >= 0 && newY - paddles[1].top < paddles[1].height) {
+						ball.goingRight = false;
+						ball.bounceXTime = time;
+						ball.bounceX = ball.x = canvas.width - paddles[1].width - ball.radius;
+					}
+					else {
+						score(0);
+					}
+				}
+				else
+					ball.x = newX;
+			}
+			else {
+				if(newX - ball.radius < paddles[0].width) {
+					if(newY - paddles[0].top >= 0 && newY - paddles[0].top < paddles[0].height) {
+						ball.goingRight = true;
+						ball.bounceXTime = time;
+						ball.bounceX = ball.x = paddles[0].width + ball.radius;
+					}
+					else {
+						score(1);
+					}
+				}
+				else
+					ball.x = newX;
+			}
+			
+			if(ball.goingDown) {
+				if(newY + ball.radius >= canvas.height) {
+					ball.bounceY = ball.y = canvas.height - ball.radius;
+					ball.bounceYTime = time;
+					ball.goingDown = false;
+				}
+				else
+					ball.y = newY;
+			}
+			else {
+				if(newY - ball.radius <= 0) {
+					ball.bounceY = ball.y = ball.radius;
+					ball.bounceYTime = time;
+					ball.goingDown = true;
+				}
+				else
+					ball.y = newY;
+			}
+		}
+		function render() {
+			c.clearRect(0, 0, canvas.width, canvas.height);
+			c.fillStyle = 'black';
+			c.fillRect(0, 0, canvas.width, canvas.height);
+			
+			
+			for (var i = 0; i < paddles.length; i++) {
+				paddle = paddles[i];
+				c.fillStyle = paddle.color;
+				c.fillRect(
+					paddle.leftNotRight ? 0 : (canvas.width - paddle.width),
+					paddle.top,
+					paddle.width,
+					paddle.height
+				);
+			}
+			
+			c.beginPath();
+			c.arc(ball.x, ball.y, ball.radius, 0, 2*Math.PI, false);
+			c.fillStyle = ball.color;
+			c.fill();
+			c.lineWidth = 1;
+			c.strokeStyle = 'white';
+			c.stroke();
+			c.closePath();
+		}
+		function keyDown() {
+			var key = event.key;
+			var paddle = paddles[0];
+			if(key == 'Up') {
+				if(!up) {
+					up = true;
+					if(paddle.top > 5) {
+						paddle.moving = -1;
+						paddle.startedMoving = new Date().getTime();
+						paddle.startPos = paddle.top;
+					}
+				}
+			}
+			if(key == 'Down') {
+				if(!down) {
+					down = true;
+					if(paddle.top < canvas.height - paddle.height - 5) {
+						paddle.moving = 1;
+						paddle.startedMoving = new Date().getTime();
+						paddle.startPos = paddle.top;
+					}
+				}
+			}
+			
+		}
+		function keyUp() {
+			var paddle = paddles[0];
+			var key = event.key;
+			if(key == 'Up') {
+				up = false;
+				if(down) {
+					if(paddle.top < canvas.height - paddle.height - 5) {
+						paddle.moving = 1;
+					}
+				}
+				else
+					paddle.moving = 0;
+			}
+			else if(key == 'Down') {
+				down = false;
+				if(up) {
+					if(paddle.top > 5) {
+						paddle.moving = -1;
+					}
+				}
+				else
+					paddle.moving = 0;
+			}
+		}
+		//	Player 0 or player 1 scored 1 point.
+		function score(player) {
+			scores[player]++;
+			scoreText.innerHTML = scores[0] + ':' + scores[1];
+			var time = new Date().getTime();
+			ball.bounceX = ball.x = canvas.width / 2;
+			ball.bounceXTime = time;
+			ball.bounceY = ball.y = ball.radius;
+			ball.bounceYTime = time;
+		}
+		function resizeCanvas(){
+            if (canvas.width != window.innerWidth)
+            {
+                canvas.width  = window.innerWidth;
+            }
+
+            if (canvas.height != window.innerHeight)
+            {
+                canvas.height = window.innerHeight;
+            }
+        }
+		</script>
+	</head>
+	<body width=100% style="text-align: center; background-color: black">
+		<h1 style="color: white">SCORE<br><span id=score>0:0</span></h1>
+		<canvas id=pongCanvas tabindex=1 style="width: 100%; height: 75%; display: inline; border: white 2px solid" onKeyDown="keyDown()" onKeyUp="keyUp()" onresize="resizeCanvas()">Your browser doesn't support this game :(</canvas>
+		<script>
+		var canvas = document.getElementById("pongCanvas");
+		var c = canvas.getContext("2d");
+		var scoreText = document.getElementById("score");
+		
+		requestAnimationFrame(loop);
+		</script>
+	</body>
+</html>
